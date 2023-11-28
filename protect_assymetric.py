@@ -63,21 +63,25 @@ def decrypt(input,output,publickey,privatekey):
         
         verifier.verify(h, signature)
         print('[+]: The signature is authentic.')
+
     except:
         print('[!]: The signature is not authentic.')
         sys.exit(1)
-    """
+    
     # Decryption of the symmetric key
-    priv_key = RSA.importKey(open(private_key).read())
+    priv_key = RSA.importKey(open(privatekey).read())
     pkcs1 = PKCS1_OAEP.new(priv_key, hashAlgo=SHA256)
-    kc = pkcs1.decrypt(ckey_buffer)
+    kc = pkcs1.decrypt(seq)
 
     # Data Decryption from kc decrypted
     aes = AES.new(kc, AES.MODE_CBC, iv)
-    p_buffer = unpad(aes.decrypt(c_buffer), AES.block_size)
+    plain = unpad(aes.decrypt(cipher), AES.block_size)
 
-    return p_buffer 
-    """
+    with open(output,"wb") as f:
+        f.write(plain)
+
+    
+    
 
 encrypt("clair","chiffre","pubkey.pem","privkey.pem")
 decrypt("chiffre","reclair","pubkey.pem","privkey.pem")

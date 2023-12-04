@@ -34,40 +34,9 @@ def encrypt(password,input,output):
         
         
 
-def decrypt(password,input,output):
-    size=os.path.getsize(input)
-    c_size=size-8-16-32
-    with open(input,"rb") as f:
-        salt=f.read(8)
-        iv=f.read(16)
-        cipher=f.read(c_size)
-        hmac=f.read()
-        
+
+if len(sys.argv)==4:
+    encrypt(sys.argv[1].encode(),sys.argv[2],sys.argv[3])
     
-    km=derive_password(password,salt,8192)
-
-    kc,ki=derivate_master_key(km)
-
-    h = HMAC.new(key=ki, digestmod=SHA256)
-    h.update(salt)
-    h.update(iv)
-    h.update(cipher)
-    try:
-        h.verify(hmac)
-    except ValueError:
-        print("MAC doesnt match")
-        sys.exit(1)
-
-    aes=AES.new(key=kc,mode=2,iv=iv)
-    plain=unpad(aes.decrypt(cipher),AES.block_size)    
-
-    with open(output,"wb") as f:
-        f.write(plain)
-
-if len(sys.argv)==5:
-    if sys.argv[1]=="encryption":
-        encrypt(sys.argv[2].encode(),sys.argv[3],sys.argv[4])
-    if sys.argv[1]=="decryption":
-        decrypt(sys.argv[2].encode(),sys.argv[3],sys.argv[4])
 else:
-    print("Usage : python3 protect_symetric.py <mode[encryption,decryption]> <password> <input> <output>")
+    print("Usage : python3 protect_symetric.py <password> <input> <output>")

@@ -34,57 +34,18 @@ def encrypt(input,output,publickey,privatekey):
     with open(output,"wb") as f:
         f.write(seq+iv+cipher+signature)
         
-
-def decrypt(input,output,publickey,privatekey):
-   
-    with open(input,'rb') as f:
-        try:
-            seq=f.read(int(RSA.importKey(open(privatekey).read()).size_in_bytes()))
-        except:
-            print('[!]: File not found:', privatekey)
-            sys.exit(1)
-        iv = f.read(16)
-        cipher = f.read(16)
-        
-        try:
-            signature = f.read(int(RSA.importKey(open(publickey).read()).size_in_bytes()))
-        except:
-            print('[!]: File not found:', publickey)
-            sys.exit(1)
-        
-   
-
-    #  Integrity check signature
-    pubkey = RSA.import_key(open(publickey).read())
-    h = SHA256.new(seq+iv+cipher)
-    verifier = pss.new(pubkey)
-
-    try:
-        
-        verifier.verify(h, signature)
-        print('[+]: The signature is authentic.')
-
-    except:
-        print('[!]: The signature is not authentic.')
-        sys.exit(1)
+if len(sys.argv)==5:
+    encrypt(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])
     
-    # Decryption of the symmetric key
-    priv_key = RSA.importKey(open(privatekey).read())
-    pkcs1 = PKCS1_OAEP.new(priv_key, hashAlgo=SHA256)
-    kc = pkcs1.decrypt(seq)
+else:
+    print("Usage : python3 protect_assymetric.py encryption <password> <input> <output>")
 
-    # Data Decryption from kc decrypted
-    aes = AES.new(kc, AES.MODE_CBC, iv)
-    plain = unpad(aes.decrypt(cipher), AES.block_size)
-
-    with open(output,"wb") as f:
-        f.write(plain)
 
     
     
 
-encrypt("clair","chiffre","pubkey.pem","privkey.pem")
-decrypt("chiffre","reclair","pubkey.pem","privkey.pem")
+
+
 
 
 

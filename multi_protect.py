@@ -20,7 +20,7 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
 
     aes=AES.new(kc,mode=2,iv=iv)
     cipher=aes.encrypt(pad(data,AES.block_size))
-    print(cipher.hex())
+    
     message=b""
     users_ciph_pub.insert(0,my_ciph_pub)
     
@@ -47,34 +47,32 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
     
     with open(output,"wb") as f:
         f.write(message)
-def get_current_param(input_bytes):
+        print("Encryption done")
+        sys.exit(0)
+
+def get_sha_and_rsa(input_bytes):
     sha256 = input_bytes[1:33]
     RSA_kpub = input_bytes[33:33+256]
     return sha256, RSA_kpub, input_bytes[33+256:]
-    return sha256, RSA_kpub, input[33+256:]
-def get_kpub_sha256(input_bytes: bytes, my_ciph_pub_key: bytes):
+    
+def get_ciphered_kc_iv(data, my_ciph_pub_key):
     h = SHA256.new(my_ciph_pub_key)
-    found_sha256, found_RSA_kpub = b'', b''
+    found_RSA_kpub = b''
 
-    while(input_bytes[0].to_bytes(1, byteorder='little') != b'\x01'):
-        sha256, RSA_kpub, input_bytes = get_current_param(input_bytes)
+    while(data[0].to_bytes(1, byteorder='little') != b'\x01'):
+        sha256, RSA_kpub, data = get_sha_and_rsa(data)
         if sha256 == h.digest():
-            found_sha256 = sha256
+            
             found_RSA_kpub = RSA_kpub
     
-    return found_sha256, found_RSA_kpub, input_bytes[1:]
+    return found_RSA_kpub
 
 def decrypt(input, output, my_ciph_priv_key, my_ciph_pub_key, sender_sign_pub):
-    '''
-    Encryption using AES-256-CBC
-    Input: 0x00 || SHA256(kpub-1) || RSA_kpub-1(Kc || IV) || ... || 0x00 || SHA256(kpub-N) || RSA_kpub-N(Kc || IV) || 0x01 || C || Sign
-    Output: bytes
-    '''
+    
     with open(input,"rb") as f:
         data=f.read()
 
-    # Integrity check msg signature
-    
+    # check integrity    
 
     signed=data[:-256]
     signature=data[-256:]
@@ -86,47 +84,38 @@ def decrypt(input, output, my_ciph_priv_key, my_ciph_pub_key, sender_sign_pub):
 
     try:
         verifier.verify(h, signature)
-        print('[+]: The signature is authentic.')
+        print('The signature is authentic.')
     except:
-        print('[!]: The signature is not authentic.')
+        print('The signature is not authentic.')
         sys.exit(1)
 
+    # searching for public key to check if user is legitim to decrypt
 
-    h = SHA256.new(open(my_ciph_pub_key,"rb").read())
-    
-    found_sha256=b''
-    found_RSA_kpub=b''
-    for byte in data[:-256]:
-        if byte.to_bytes()==b'\x01':
-            found_sha256=data[1:33]
-            found_RSA_kpub=data[33:33+256]
-            rest=data[33+256+1:]
-            
-            if h.digest()==found_sha256:
-                print("found")
-                break
-            
-    sha256, found_RSA_kpub, cipher_b = get_kpub_sha256(data[:-256], open(my_ciph_pub_key,"rb").read())
+    ciphered_iv_kc= get_ciphered_kc_iv(data[:-256], open(my_ciph_pub_key,"rb").read())
 
-    
-    #print(rest[256:])
-    #print(rest)
-    print('[+]: Public key found')
-    
+    if len(ciphered_iv_kc)>1:    
+        print('Ciphered kc and iv found')
+    else:
+        print('You are not authorized to decrypt this content')
+        sys.exit(1)
+
     priv_key = RSA.importKey(open(my_ciph_priv_key,"rb").read())
     pkcs1 = PKCS1_OAEP.new(priv_key, hashAlgo=SHA256)
-    plain_params = pkcs1.decrypt(found_RSA_kpub)
-    kc = plain_params[:32]
-    iv = plain_params[32:]
+    kc_iv = pkcs1.decrypt(ciphered_iv_kc)
+    kc = kc_iv[:32]
+    iv = kc_iv[32:]
 
-    # Data Decryption from kc decrypted
+    # Data Decryption 
     aes = AES.new(kc, AES.MODE_CBC, iv)
-    chain=rest[:-256]
+
+    chain=data[:-256]
     
     plain = unpad(aes.decrypt(chain[-16:]), AES.block_size)
 
     with open(output,"wb") as f:
         f.write(plain)
+        print("Decryption done")
+        sys.exit(0)
 
     
 if len(sys.argv) <= 1:

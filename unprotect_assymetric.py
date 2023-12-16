@@ -14,7 +14,7 @@ def decrypt(input,output,publickey,privatekey):
         try:
             seq=f.read(int(RSA.importKey(open(privatekey).read()).size_in_bytes()))
         except:
-            print('[!]: File not found:', privatekey)
+            print('File not found:', privatekey)
             sys.exit(1)
         iv = f.read(16)
         cipher = f.read(16)
@@ -22,7 +22,7 @@ def decrypt(input,output,publickey,privatekey):
         try:
             signature = f.read(int(RSA.importKey(open(publickey).read()).size_in_bytes()))
         except:
-            print('[!]: File not found:', publickey)
+            print(' File not found:', publickey)
             sys.exit(1)
         
    
@@ -35,10 +35,10 @@ def decrypt(input,output,publickey,privatekey):
     try:
         
         verifier.verify(h, signature)
-        print('[+]: The signature is authentic.')
+        print('The signature is authentic.')
 
     except:
-        print('[!]: The signature is not authentic.')
+        print('The signature is not authentic.')
         sys.exit(1)
     
   

@@ -20,12 +20,12 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
 
     aes=AES.new(kc,mode=2,iv=iv)
     cipher=aes.encrypt(pad(data,AES.block_size))
-
+    print(cipher.hex())
     message=b""
     users_ciph_pub.insert(0,my_ciph_pub)
     
     for user_key in users_ciph_pub:
-
+        
         key=open(user_key,"rb").read()
         ciph_pub=RSA.importKey(key)
 
@@ -37,19 +37,32 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
         
 
     message=message+ b'\x01'+cipher
-    print(cipher)
+    
     hash=SHA256.new(message)
-    my_sign_priv=open(my_sign_priv).read()
+    my_sign_priv = open(my_sign_priv, "rb").read()
+
     private_key=RSA.import_key(my_sign_priv)
     signature=pss.new(private_key).sign(hash)
     message+=signature
     
     with open(output,"wb") as f:
         f.write(message)
-def get_params(input):
-    sha256 = input[1:33]
-    RSA_kpub = input[33:33+256]
+def get_current_param(input_bytes):
+    sha256 = input_bytes[1:33]
+    RSA_kpub = input_bytes[33:33+256]
+    return sha256, RSA_kpub, input_bytes[33+256:]
     return sha256, RSA_kpub, input[33+256:]
+def get_kpub_sha256(input_bytes: bytes, my_ciph_pub_key: bytes):
+    h = SHA256.new(my_ciph_pub_key)
+    found_sha256, found_RSA_kpub = b'', b''
+
+    while(input_bytes[0].to_bytes(1, byteorder='little') != b'\x01'):
+        sha256, RSA_kpub, input_bytes = get_current_param(input_bytes)
+        if sha256 == h.digest():
+            found_sha256 = sha256
+            found_RSA_kpub = RSA_kpub
+    
+    return found_sha256, found_RSA_kpub, input_bytes[1:]
 
 def decrypt(input, output, my_ciph_priv_key, my_ciph_pub_key, sender_sign_pub):
     '''
@@ -93,11 +106,11 @@ def decrypt(input, output, my_ciph_priv_key, my_ciph_pub_key, sender_sign_pub):
                 print("found")
                 break
             
-
+    sha256, found_RSA_kpub, cipher_b = get_kpub_sha256(data[:-256], open(my_ciph_pub_key,"rb").read())
 
     
-    print(rest[256:])
-    print(rest)
+    #print(rest[256:])
+    #print(rest)
     print('[+]: Public key found')
     
     priv_key = RSA.importKey(open(my_ciph_priv_key,"rb").read())
@@ -108,7 +121,9 @@ def decrypt(input, output, my_ciph_priv_key, my_ciph_pub_key, sender_sign_pub):
 
     # Data Decryption from kc decrypted
     aes = AES.new(kc, AES.MODE_CBC, iv)
-    plain = unpad(aes.decrypt(rest[:-256]), AES.block_size)
+    chain=rest[:-256]
+    
+    plain = unpad(aes.decrypt(chain[-16:]), AES.block_size)
 
     with open(output,"wb") as f:
         f.write(plain)

@@ -58,4 +58,4 @@ if len(sys.argv)==5:
     decrypt(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])
     
 else:
-    print("Usage : python3 protect_assymetric.py encryption <password> <input> <output>")
+    print("Usage : python3 unprotect_assymetric.py <input> <output> public_key private_key")

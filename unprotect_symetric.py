@@ -31,7 +31,7 @@ def decrypt(password,input,output):
         print("MAC doesnt match")
         sys.exit(1)
 
-    aes=AES.new(key=kc,mode=2,iv=iv)
+    aes=AES.new(key=kc,mode=AES.MODE_CBC,iv=iv)
     plain=unpad(aes.decrypt(cipher),AES.block_size)    
 
     with open(output,"wb") as f:

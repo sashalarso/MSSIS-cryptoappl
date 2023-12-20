@@ -19,7 +19,7 @@ def encrypt(password,input,output):
         data=f.read()
 
     # chiffrement avec aes cbc
-    aes=AES.new(kc,2,iv=iv)
+    aes=AES.new(kc,AES.MODE_CBC,iv=iv)
     cipher=aes.encrypt(pad(data,AES.block_size))
     
     #hmac construction salt||iv||C||h

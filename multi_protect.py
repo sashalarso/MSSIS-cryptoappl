@@ -18,12 +18,16 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
     with open(input,"rb") as f:
         data=f.read()
 
+    #encrypt data
     aes=AES.new(kc,mode=2,iv=iv)
     cipher=aes.encrypt(pad(data,AES.block_size))
     
     message=b""
+
+    #set my cipher pub key at first
     users_ciph_pub.insert(0,my_ciph_pub)
     
+    #iterate over receivers
     for user_key in users_ciph_pub:
         
         key=open(user_key,"rb").read()
@@ -41,6 +45,7 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
     hash=SHA256.new(message)
     my_sign_priv = open(my_sign_priv, "rb").read()
 
+    #signature
     private_key=RSA.import_key(my_sign_priv)
     signature=pss.new(private_key).sign(hash)
     message+=signature
@@ -50,11 +55,13 @@ def encrypt(input,output,my_sign_priv,my_ciph_pub,users_ciph_pub):
         print("Encryption done")
         sys.exit(0)
 
+# from bytes return sha and ciphered iv || kc
 def get_sha_and_rsa(input_bytes):
     sha256 = input_bytes[1:33]
     RSA_kpub = input_bytes[33:33+256]
     return sha256, RSA_kpub, input_bytes[33+256:]
-    
+
+# from a key return iv and kc ciphered if user is legitim   
 def get_ciphered_kc_iv(data, my_ciph_pub_key):
     h = SHA256.new(my_ciph_pub_key)
     found_RSA_kpub = b''
